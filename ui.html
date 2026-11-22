@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SO-101 Setup</title>
+<style>
+  :root {
+    --bg: #f4f3ef; --panel: #ffffff; --ink: #1c1b19; --muted: #6b6860; --line: #dedbd3;
+    --accent: #d9551a; --ok: #1f8a4c; --bad: #b3261e; --track: #e8e5dd; --stage: #e9e7e1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --panel: #1f1f1d; --ink: #f0eee8; --muted: #9c998f; --line: #34332f;
+      --accent: #ff7a3d; --ok: #4cc27e; --bad: #ff6b61; --track: #2c2b28; --stage: #1a1a19;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 -apple-system, "Helvetica Neue", sans-serif; }
+  .app { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(340px, 1fr); height: 100vh; }
+  .stage { position: relative; background: var(--stage); border-right: 1px solid var(--line); min-height: 300px; }
+  .stage canvas { display: block; width: 100%; height: 100%; }
+  .stage .caption { position: absolute; left: 20px; top: 16px; font-size: 13px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+  .stage .hint { position: absolute; left: 20px; bottom: 14px; font-size: 13px; color: var(--muted); }
+  .panel { padding: 28px 32px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+  .crumbs { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .crumbs b { color: var(--ink); font-weight: 600; }
+  .crumbs .on { color: var(--accent); font-weight: 600; }
+  h1 { font-size: 28px; line-height: 1.2; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+  p { margin: 0; }
+  .lede { color: var(--muted); }
+  ul.checks { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+  ul.checks li { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+  ul.checks li b { display: block; }
+  ul.checks li span { color: var(--muted); font-size: 14px; }
+  button { font: inherit; border-radius: 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 11px 18px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .cards { display: grid; gap: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+  .card h2 { font-size: 18px; margin: 0; }
+  .card small { color: var(--muted); }
+  .badge { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .badge.ok { color: var(--ok); }
+  .meter { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; gap: 10px; }
+  .meter .big { font-size: 34px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1; }
+  .meter .big small { font-size: 15px; font-weight: 400; color: var(--muted); }
+  .track { position: relative; height: 14px; background: var(--track); border-radius: 7px; overflow: hidden; }
+  .track .band { position: absolute; top: 0; bottom: 0; background: var(--accent); opacity: .45; }
+  .track .pos { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--ink); }
+  .joints { display: grid; gap: 6px; }
+  .joints button { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: center; text-align: left; padding: 8px 12px; font-size: 15px; }
+  .joints button.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .joints .deg { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 14px; }
+  .tick { color: var(--line); font-weight: 700; }
+  .tick.ok { color: var(--ok); }
+  .note { font-size: 14px; color: var(--muted); }
+  .error { color: var(--bad); font-size: 14px; white-space: pre-wrap; }
+  .warn { border-left: 3px solid var(--accent); padding: 4px 0 4px 12px; font-size: 14px; }
+  @media (max-width: 800px) { .app { grid-template-columns: 1fr; height: auto; } .stage { height: 46vh; border-right: 0; border-bottom: 1px solid var(--line); } .panel { padding: 20px 16px; } }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+  "urdf-loader": "https://cdn.jsdelivr.net/npm/urdf-loader@0.12.4/src/URDFLoader.js"
+} }
+</script>
+</head>
+<body>
+<div class="app">
+  <div class="stage">
+    <canvas id="view"></canvas>
+    <div class="caption" id="caption">SO-101</div>
+    <div class="hint">Drag to rotate · scroll to zoom</div>
+  </div>
+
+  <div class="panel">
+    <div class="crumbs" id="crumbs"></div>
+
+    <section id="v-home" hidden style="display:grid;gap:20px">
+      <h1>Set up your SO-101 arms</h1>
+      <p class="lede">Calibrate each arm once. You move the arm by hand; the motors stay limp.</p>
+      <div class="cards">
+        <div class="card"><div><h2>Follower</h2><span class="badge" id="b-follower"></span></div><button class="primary" data-post="start/follower">Calibrate</button></div>
+        <div class="card"><div><h2>Leader</h2><span class="badge" id="b-leader"></span></div><button class="primary" data-post="start/leader">Calibrate</button></div>
+        <div class="card"><div><h2>Teleoperate</h2><small id="teleop-sub">The follower copies the leader.</small></div><button id="teleop-btn"></button></div>
+      </div>
+      <p class="warn" id="teleop-warn" hidden>Before you start: hold the leader in roughly the same pose as the follower. The follower moves to match it straight away. When you stop, the follower goes limp.</p>
+      <p class="error" id="teleop-err"></p>
+    </section>
+
+    <section id="v-connecting" hidden>
+      <h1>Connecting…</h1>
+    </section>
+
+    <section id="v-middle" hidden style="display:grid;gap:20px">
+      <h1>Hold the arm like the model</h1>
+      <p class="lede">Every joint at the middle of its travel. It doesn't need to be exact.</p>
+      <ul class="checks">
+        <li><b>Base</b><span>Arm pointing straight ahead, in line with the base.</span></li>
+        <li><b>Upper arm</b><span>Straight up.</span></li>
+        <li><b>Forearm and wrist</b><span>Level, pointing forward in one line.</span></li>
+        <li><b>Wrist roll</b><span>Halfway through its rotation, moving jaw on top.</span></li>
+        <li><b id="grip-name">Gripper</b><span id="grip-how">Half open.</span></li>
+      </ul>
+      <div class="row">
+        <button class="primary" data-post="middle">I'm holding it — record middle</button>
+        <button data-post="cancel">Cancel</button>
+      </div>
+    </section>
+
+    <section id="v-sweep" hidden style="display:grid;gap:18px">
+      <h1 id="sw-title"></h1>
+      <p class="lede" id="sw-how"></p>
+      <div class="meter">
+        <div class="big"><span id="sw-deg">0</span>° <small id="sw-status"></small></div>
+        <div class="track"><div class="band" id="sw-band"></div><div class="pos" id="sw-pos"></div></div>
+      </div>
+      <div class="row">
+        <button class="primary" id="sw-next">Next joint</button>
+        <button class="primary" id="sw-save" data-post="save" hidden>Save calibration</button>
+        <button data-post="redo">Redo middle pose</button>
+        <button data-post="cancel">Cancel</button>
+      </div>
+      <p class="error" id="sw-err"></p>
+      <div class="joints" id="sw-list"></div>
+      <p class="note">Wrist roll turns all the way round, so it needs no sweep.</p>
+    </section>
+
+    <section id="v-done" hidden style="display:grid;gap:20px">
+      <h1 id="done-title"></h1>
+      <p class="lede">You can let go of the arm.</p>
+      <div class="row"><button class="primary" id="done-next"></button></div>
+    </section>
+
+    <section id="v-error" hidden style="display:grid;gap:20px">
+      <h1>Something went wrong</h1>
+      <p class="error" id="err-text"></p>
+      <p class="note">Check the USB cable and power supply, then try again.</p>
+      <div class="row"><button class="primary" data-post="home">Back</button></div>
+    </section>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import URDFLoader from "urdf-loader";
+
+// ---------- steps ----------
+const SWEEP = [
+  { id: "shoulder_pan", label: "Base rotation", how: "Turn the whole arm left at the base until it stops, then right until it stops.", min: 500 },
+  { id: "shoulder_lift", label: "Shoulder", how: "Tip the upper arm all the way forward, then all the way back.", min: 500 },
+  { id: "elbow_flex", label: "Elbow", how: "Fold the forearm fully in, then stretch it fully out.", min: 500 },
+  { id: "wrist_flex", label: "Wrist", how: "Bend the wrist all the way up, then all the way down.", min: 500 },
+  { id: "gripper", label: "Gripper", how: "Close the jaw completely, then open it completely.", min: 300 },
+];
+const $ = (id) => document.getElementById(id);
+const VIEWS = ["home", "connecting", "middle", "sweep", "done", "error"];
+let st = null, sel = 0, lastPhase = null;
+
+const post = (path) => fetch("/" + path, { method: "POST" }).then(poll);
+document.querySelectorAll("[data-post]").forEach((b) => (b.onclick = () => post(b.dataset.post)));
+$("sw-next").onclick = () => { sel = Math.min(sel + 1, SWEEP.length - 1); render(); };
+$("teleop-btn").onclick = () => post(st.teleop.running ? "teleop/stop" : "teleop/start");
+$("done-next").onclick = () => {
+  const other = st.arm === "follower" ? "leader" : "follower";
+  post(st.calibrated[other] ? "home" : "start/" + other);
+};
+
+const range = (j) => (j ? j.max - j.min : 0);
+const swept = (i) => range(st.joints[SWEEP[i].id]) >= SWEEP[i].min;
+
+function render() {
+  const view = st.phase === "idle" ? "home" : st.phase;
+  VIEWS.forEach((v) => ($("v-" + v).hidden = v !== view));
+  if (st.phase !== lastPhase) { if (st.phase === "sweep") sel = 0; lastPhase = st.phase; }
+  const arm = st.arm ? st.arm[0].toUpperCase() + st.arm.slice(1) : "";
+  const leader = st.arm === "leader";
+
+  const steps = ["Middle pose", "Sweep joints", "Saved"];
+  const at = { middle: 0, sweep: 1, done: 2 }[view];
+  $("crumbs").innerHTML = at === undefined ? "" :
+    `<b>${arm} arm</b>` + steps.map((s, i) => ` › <span class="${i === at ? "on" : ""}">${i + 1}. ${s}</span>`).join("");
+
+  for (const name of ["follower", "leader"]) {
+    $("b-" + name).textContent = st.calibrated[name] ? "✓ Calibrated" : "Not calibrated";
+    $("b-" + name).className = "badge" + (st.calibrated[name] ? " ok" : "");
+  }
+  document.querySelectorAll('[data-post^="start/"]').forEach((b) => {
+    b.textContent = st.calibrated[b.dataset.post.split("/")[1]] ? "Recalibrate" : "Calibrate";
+    b.className = st.calibrated[b.dataset.post.split("/")[1]] ? "" : "primary";
+    b.disabled = st.teleop.running;
+  });
+  const both = st.calibrated.follower && st.calibrated.leader;
+  $("teleop-btn").textContent = st.teleop.running ? "Stop" : "Start";
+  $("teleop-btn").className = both ? "primary" : "";
+  $("teleop-btn").disabled = !both;
+  $("teleop-sub").textContent = st.teleop.running ? "Running — move the leader." : both ? "The follower copies the leader." : "Calibrate both arms first.";
+  $("teleop-warn").hidden = !both || st.teleop.running;
+  $("teleop-err").textContent = st.teleop.error || "";
+
+  $("grip-name").textContent = leader ? "Trigger" : "Gripper";
+  $("grip-how").textContent = leader ? "Squeezed halfway." : "Half open.";
+
+  let demo = null;
+  if (view === "sweep") {
+    const step = SWEEP[sel], j = st.joints[step.id] || { pos: 0, min: 0, max: 0 };
+    demo = step.id;
+    const isGrip = step.id === "gripper";
+    $("sw-title").textContent = `${sel + 1} of ${SWEEP.length} · ${isGrip && leader ? "Trigger" : step.label}`;
+    $("sw-how").textContent = isGrip && leader ? "Squeeze the trigger completely, then release it completely." : step.how;
+    const r = range(j), wrapped = r > 3900;
+    $("sw-deg").textContent = Math.round((r * 360) / 4096);
+    $("sw-status").textContent = wrapped ? "too much: redo the middle pose" : r >= step.min ? "✓ recorded — keep going to both stops" : "swept so far";
+    $("sw-status").style.color = wrapped ? "var(--bad)" : r >= step.min ? "var(--ok)" : "";
+    $("sw-band").style.left = (j.min / 4095) * 100 + "%";
+    $("sw-band").style.width = (r / 4095) * 100 + "%";
+    $("sw-pos").style.left = (j.pos / 4095) * 100 + "%";
+    const all = SWEEP.every((_, i) => swept(i));
+    const last = sel === SWEEP.length - 1;
+    $("sw-next").hidden = last;
+    $("sw-next").disabled = !swept(sel);
+    $("sw-save").hidden = !last;
+    $("sw-save").disabled = !all;
+    $("sw-err").textContent = st.error || "";
+    $("sw-list").innerHTML = SWEEP.map((s, i) =>
+      `<button data-i="${i}" class="${i === sel ? "sel" : ""}"><span class="tick ${swept(i) ? "ok" : ""}">✓</span>` +
+      `<span>${s.id === "gripper" && leader ? "Trigger" : s.label}</span><span class="deg">${Math.round((range(st.joints[s.id]) * 360) / 4096)}°</span></button>`).join("");
+    $("sw-list").querySelectorAll("button").forEach((b) => (b.onclick = () => { sel = +b.dataset.i; render(); }));
+  }
+  if (view === "done") {
+    const other = st.arm === "follower" ? "leader" : "follower";
+    $("done-title").textContent = `${arm} arm calibrated ✓`;
+    $("done-next").textContent = st.calibrated[other] ? "Continue" : `Next: calibrate the ${other}`;
+  }
+  if (view === "error") $("err-text").textContent = st.error || "";
+
+  $("caption").textContent = view === "middle" ? "Target pose" : view === "sweep" ? "Move the highlighted part like this" : "SO-101";
+  setDemo(demo);
+}
+
+async function poll() {
+  try { st = await (await fetch("/state")).json(); render(); } catch { /* server restarting */ }
+}
+setInterval(poll, 120);
+poll();
+
+// ---------- 3D arm (official SO-101 URDF + STL meshes) ----------
+const canvas = $("view");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 10);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x777777, 2.2));
+const sun = new THREE.DirectionalLight(0xffffff, 2);
+sun.position.set(1, 2, 1.5);
+scene.add(sun);
+const grid = new THREE.GridHelper(1, 20, 0x999999, 0xbbbbbb);
+grid.material.transparent = true;
+grid.material.opacity = 0.35;
+scene.add(grid);
+
+const ACCENT = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue("--accent").trim());
+const STILL = new THREE.Color(0x7d7b76);
+let robot = null, demoJoint = null;
+const GRIPPER_MID = 0.78; // rad: half open
+
+const manager = new THREE.LoadingManager();
+const loader = new URDFLoader(manager);
+loader.load("/model/so101.urdf", (r) => {
+  robot = r;
+  robot.rotation.x = -Math.PI / 2; // URDF is Z-up
+  scene.add(robot);
+});
+manager.onLoad = () => {
+  robot.traverse((o) => {
+    if (!o.isMesh) return;
+    o.material = new THREE.MeshStandardMaterial({ color: o.material.color ?? 0xdddddd, roughness: 0.6, metalness: 0.05 });
+    o.userData.color = o.material.color.clone();
+  });
+  pose(0);
+  robot.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(robot);
+  const size = box.getSize(new THREE.Vector3()).length();
+  const center = box.getCenter(new THREE.Vector3());
+  center.x = center.z = 0; // orbit around the base so the arm stays in frame as it swings
+  controls.target.copy(center);
+  camera.position.copy(center).add(new THREE.Vector3(0.55, 0.35, 0.8).normalize().multiplyScalar(size * 2.3));
+  paint();
+};
+
+function setDemo(name) {
+  if (name === demoJoint) return;
+  demoJoint = name;
+  paint();
+}
+function paint() {
+  if (!robot) return;
+  // While a joint is being demonstrated, grey out everything except the part that moves.
+  const j = demoJoint && robot.joints[demoJoint];
+  robot.traverse((o) => {
+    if (!o.isMesh) return;
+    o.material.emissive.setScalar(0);
+    o.material.color.copy(j ? STILL : o.userData.color);
+  });
+  if (j) j.traverse((o) => {
+    if (!o.isMesh) return;
+    o.material.color.copy(o.userData.color);
+    o.material.emissive.copy(ACCENT).multiplyScalar(0.35);
+  });
+}
+function pose(t) {
+  for (const name of Object.keys(robot.joints)) {
+    const j = robot.joints[name];
+    if (j.jointType !== "revolute") continue;
+    let v = name === "gripper" ? GRIPPER_MID : 0;
+    if (name === demoJoint) {
+      const k = (1 - Math.cos(t * 1.4)) / 2; // ease between the two end stops
+      v = j.limit.lower + (j.limit.upper - j.limit.lower) * k;
+    }
+    j.setJointValue(v);
+  }
+}
+function frame(ms) {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (canvas.width !== Math.floor(w * renderer.getPixelRatio()) || canvas.height !== Math.floor(h * renderer.getPixelRatio())) {
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  if (robot) pose(ms / 1000);
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
