@@ -1,6 +1,6 @@
 # so101
 
-![so101 — robot arm experiments](docs/assets/hero.png)
+![so101 — a wireframe robot arm with joint axes and a traced gripper path](docs/assets/hero.png)
 
 **A running collection of my experiments with an SO-101 leader and follower
 arm.** Each one is a small, self-contained step on the pair, run from a Mac
