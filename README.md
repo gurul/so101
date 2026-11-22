@@ -1,26 +1,24 @@
 # so101
 
-**An SO-101 leader and follower arm, run from a Mac with LeRobot.**
-This repo is the working folder for the pair: getting both arms calibrated,
-driving the follower from the leader, and the first programs that move the
-follower on their own.
+![so101 — robot arm experiments](docs/assets/hero.png)
 
-It sits on top of [LeRobot](https://github.com/huggingface/lerobot) and uses
-its motor bus, arm classes and calibration files unchanged.
+**A running collection of my experiments with an SO-101 leader and follower
+arm.** Each one is a small, self-contained step on the pair, run from a Mac
+with [LeRobot](https://github.com/huggingface/lerobot). New experiments land
+here as they happen.
 
-This is an early project. What works today: both arms calibrated,
-teleoperation at 60 Hz, and a first motion script for the follower. There are
-no cameras on the rig yet, so there is no dataset recording or policy training
-here.
+So far: both arms calibrated, teleoperation at 60 Hz, and a first motion
+script for the follower. There are no cameras on the rig yet, so there is no
+dataset recording or policy training here.
 
-- [What it does](#what-it-does)
+- [Experiments so far](#experiments-so-far)
 - [Hardware](#hardware)
 - [Quick start](#quick-start)
 - [How calibration works](#how-calibration-works)
 - [Repository guide](#repository-guide)
 - [Credits](#credits)
 
-## What it does
+## Experiments so far
 
 - **Teleoperates.** The follower copies the leader through
   `lerobot-teleoperate`, started and stopped from a local page. Stopping sends
